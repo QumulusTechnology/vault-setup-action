@@ -1,0 +1,98 @@
+name: 'GitHub Vault Action'
+description: 'Setup Vault Authentication for GitHub Actions'
+inputs:
+  secrets:
+    description: 'Secrets to be fetched from Vault'
+    required: false
+  platform:
+    description: 'Qumulus Platform to be used'
+    required: true
+  export_token:
+    description: 'Export Vault Token to the environment'
+    required: false
+    default: 'true'
+  aws_account_ids:
+    description: 'AWS Account IDs for different environments'
+    required: true
+  vault_addr:
+    description: 'Vault Address'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Set Variables
+      env:
+        VAULT_ADDR: ${{ inputs.vault_addr }}
+      shell: bash
+      run: |
+        if [ "$GITHUB_EVENT_NAME" == "delete" ]; then
+          BRANCH=${{ github.event.ref }}
+        else
+          BRANCH=${{ github.base_ref || github.ref_name }}
+        fi
+        VAULT_OIDC_BRANCH=$BRANCH
+        if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ] && [ "$BRANCH" != "staging" ] && [ "$BRANCH" != "qa" ]; then
+          VAULT_OIDC_BRANCH=dev
+        fi
+        if [ "$BRANCH" == "main" ] || [ "$BRANCH" == "master" ]; then
+          ENVIRONMENT=prod
+        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ]; then
+          ENVIRONMENT=$BRANCH
+        else
+          ENVIRONMENT=dev
+        fi
+        REPOSITORY=$(echo ${GITHUB_REPOSITORY#*/})
+        ROLE="github-qcp-${REPOSITORY}-${VAULT_OIDC_BRANCH}"
+        if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+          ROLE="${ROLE}-pr"
+        fi
+        echo "ROLE=$ROLE" >> $GITHUB_ENV
+        echo "VAULT_ADDR=$VAULT_ADDR" >> $GITHUB_ENV
+        echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+        echo "REPOSITORY=$REPOSITORY" >> $GITHUB_ENV
+        echo "VAULT_ADDR=${VAULT_ADDR}" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${ENVIRONMENT}" >> $GITHUB_ENV
+
+    - name: Import Secrets
+      id: import-secrets
+      uses: hashicorp/vault-action@v3
+      with:
+        exportToken: ${{ inputs.export_token }}
+        method: jwt
+        url: ${{ inputs.VAULT_ADDR }}
+        path: jwt/github
+        role: ${{ env.ROLE }}
+        secrets: ${{ inputs.secrets }}
+
+    - name: Set up AWS Profiles
+      shell: bash
+      env:
+        AWS_ACCOUNT_IDS: ${{ inputs.aws_account_ids }}
+        PLATFORM: ${{ inputs.platform }}
+      run: |
+        mkdir -p ~/.aws
+
+        REGION=eu-west-2
+
+
+        if [ "$BRANCH" == "main" ]; then
+          ENVIRONMENT=prod
+        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ]; then
+          ENVIRONMENT=$BRANCH
+        else
+          ENVIRONMENT=dev
+        fi
+
+        ID=$(echo $AWS_ACCOUNT_IDS | jq -r ".[] | select(.name == \"${PLATFORM,,}_${ENVIRONMENT,,}\") | .id")
+        echo "[default]" > ~/.aws/config
+        echo "region = eu-west-2" >> ~/.aws/config
+        echo "credential_process=vault-aws-credential-helper eu-west-2 github-${REPOSITORY}-${BRANCH} ${ID} vault/github/github-${REPOSITORY}-${BRANCH}" >> ~/.aws/config
+
+        echo $AWS_ACCOUNT_IDS | jq -c '.[]' | while read i; do
+          NAME=$(echo ${i} | jq -r .name)
+          ID=$(echo ${i} | jq -r .id)
+          echo "" >> ~/.aws/config
+          echo "[profile ${NAME}]" >> ~/.aws/config
+          echo "region = eu-west-2" >> ~/.aws/config
+          echo "credential_process=vault-aws-credential-helper eu-west-2 github-${REPOSITORY}-${BRANCH} ${ID} vault/github/github-${REPOSITORY}-${BRANCH}" >> ~/.aws/config
+        done
