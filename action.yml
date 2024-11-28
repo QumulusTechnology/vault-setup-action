@@ -5,53 +5,61 @@ inputs:
     description: 'Secrets to be fetched from Vault'
     required: false
   platform:
-    description: 'Qumulus Platform to be used'
+    description: 'Qumulus platform to be used'
     required: true
+  region:
+    description: 'AWS Region - either primary or secondary'
+    required: false
+    default: 'primary'
   export_token:
-    description: 'Export Vault Token to the environment'
+    description: 'Export vault Token to the environment'
     required: false
     default: 'true'
-  aws_account_ids:
-    description: 'AWS Account IDs for different environments'
-    required: true
   vault_addr:
     description: 'Vault Address'
     required: true
+  aws_account_data:
+    description: 'AWS account data for different environments'
+    required: false
 runs:
   using: "composite"
   steps:
     - name: Set Variables
+      shell: bash
       env:
         VAULT_ADDR: ${{ inputs.vault_addr }}
-      shell: bash
       run: |
         if [ "$GITHUB_EVENT_NAME" == "delete" ]; then
           BRANCH=${{ github.event.ref }}
         else
           BRANCH=${{ github.base_ref || github.ref_name }}
         fi
-        VAULT_OIDC_BRANCH=$BRANCH
-        if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "master" ] && [ "$BRANCH" != "staging" ] && [ "$BRANCH" != "qa" ]; then
-          VAULT_OIDC_BRANCH=dev
-        fi
-        if [ "$BRANCH" == "main" ] || [ "$BRANCH" == "master" ]; then
+
+        if [ "$BRANCH" == "main" ]; then
+          VAULT_OIDC_BRANCH=$BRANCH
           ENVIRONMENT=prod
-        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ]; then
+        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ] || [ "$BRANCH" == "experimental" ]; then
+          VAULT_OIDC_BRANCH=$BRANCH
           ENVIRONMENT=$BRANCH
         else
+          VAULT_OIDC_BRANCH=dev
           ENVIRONMENT=dev
         fi
+
         REPOSITORY=$(echo ${GITHUB_REPOSITORY#*/})
         ROLE="github-qcp-${REPOSITORY}-${VAULT_OIDC_BRANCH}"
+
         if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
           ROLE="${ROLE}-pr"
         fi
+
         echo "ROLE=$ROLE" >> $GITHUB_ENV
         echo "VAULT_ADDR=$VAULT_ADDR" >> $GITHUB_ENV
         echo "BRANCH=$BRANCH" >> $GITHUB_ENV
         echo "REPOSITORY=$REPOSITORY" >> $GITHUB_ENV
         echo "VAULT_ADDR=${VAULT_ADDR}" >> $GITHUB_ENV
         echo "ENVIRONMENT=${ENVIRONMENT}" >> $GITHUB_ENV
+        echo "VAULT_OIDC_BRANCH=${VAULT_OIDC_BRANCH}" >> $GITHUB_ENV
 
     - name: Import Secrets
       id: import-secrets
@@ -64,35 +72,54 @@ runs:
         role: ${{ env.ROLE }}
         secrets: ${{ inputs.secrets }}
 
-    - name: Set up AWS Profiles
+    - name: Set up AWS Profiles and Environment Variables
       shell: bash
       env:
-        AWS_ACCOUNT_IDS: ${{ inputs.aws_account_ids }}
+        AWS_ACCOUNT_DATA_BASE64: ${{ inputs.aws_account_data }}
         PLATFORM: ${{ inputs.platform }}
+        REGION: ${{ inputs.region }}
       run: |
-        mkdir -p ~/.aws
 
-        REGION=eu-west-2
+        mkdir ~/.aws
+        AWS_CONFIG_PATH=~/.aws/config
+        AWS_ACCOUNT_DATA=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}")
+        AWS_ACCOUNT_DATA_REGIONAL=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}.${REGION}")
 
-
-        if [ "$BRANCH" == "main" ]; then
-          ENVIRONMENT=prod
-        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ]; then
-          ENVIRONMENT=$BRANCH
-        else
-          ENVIRONMENT=dev
-        fi
-
-        ID=$(echo $AWS_ACCOUNT_IDS | jq -r ".[] | select(.name == \"${PLATFORM,,}_${ENVIRONMENT,,}\") | .id")
-        echo "[default]" > ~/.aws/config
-        echo "region = eu-west-2" >> ~/.aws/config
-        echo "credential_process=vault-aws-credential-helper eu-west-2 github-${REPOSITORY}-${BRANCH} ${ID} vault/github/github-${REPOSITORY}-${BRANCH}" >> ~/.aws/config
-
-        echo $AWS_ACCOUNT_IDS | jq -c '.[]' | while read i; do
-          NAME=$(echo ${i} | jq -r .name)
-          ID=$(echo ${i} | jq -r .id)
-          echo "" >> ~/.aws/config
-          echo "[profile ${NAME}]" >> ~/.aws/config
-          echo "region = eu-west-2" >> ~/.aws/config
-          echo "credential_process=vault-aws-credential-helper eu-west-2 github-${REPOSITORY}-${BRANCH} ${ID} vault/github/github-${REPOSITORY}-${BRANCH}" >> ~/.aws/config
+        for s in $(echo $AWS_ACCOUNT_DATA_REGIONAL | jq -r "to_entries|map(\"AWS_\(.key | ascii_upcase)=\(.value|tostring)\")|.[]" ); do
+            echo "$s" >> $GITHUB_ENV
         done
+
+        export AWS_ACCOUNT_ID=$(echo $AWS_ACCOUNT_DATA | jq -r '.account_id')
+        export AWS_REGION=$(echo $AWS_ACCOUNT_DATA_REGIONAL | jq -r '.region')
+
+        echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+        echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+
+        echo "AWS_DOMAIN_HOSTED_ZONE_ID=$(echo $AWS_ACCOUNT_DATA | jq -r '.hosted_zone_id')" >> $GITHUB_ENV
+        echo "DOMAIN_NAME=$(echo $AWS_ACCOUNT_DATA | jq -r '.domain_name')" >> $GITHUB_ENV
+
+
+        echo "[default]" > $AWS_CONFIG_PATH
+        echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
+        echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${VAULT_OIDC_BRANCH} ${AWS_ACCOUNT_ID} vault/github/github-${REPOSITORY}-${VAULT_OIDC_BRANCH}" >>  $AWS_CONFIG_PATH
+        echo "" >> $AWS_CONFIG_PATH
+
+        for platform in $(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r "to_entries | .[] | .key"); do
+            for environment in $(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r ".${platform} | to_entries | .[] | .key"); do
+
+                account_id=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r ".${platform}.${environment}.account_id")
+
+                branch=${environment}
+
+                if [ "$environment" == "prod" ]; then
+                    branch="main"
+                fi
+
+                echo "[profile ${platform}_${environment}]" >> $AWS_CONFIG_PATH
+                echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
+                echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${branch} ${account_id} vault/github/github-${REPOSITORY}-${branch}" >>  $AWS_CONFIG_PATH
+                echo "" >> $AWS_CONFIG_PATH
+
+            done
+        done
+       
