@@ -81,8 +81,7 @@ runs:
       run: |
 
         mkdir ~/.aws
-        AWS_CONFIG_PATH=~/.aws/config
-        AWS_CREDENTIALS_PATH=~/.aws/credentials
+        AWS_CREDENTIALS_PATH=~/.aws/config
         AWS_ACCOUNT_DATA=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}")
         AWS_ACCOUNT_DATA_REGIONAL=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}.${REGION}")
 
@@ -99,8 +98,6 @@ runs:
         echo "AWS_DOMAIN_HOSTED_ZONE_ID=$(echo $AWS_ACCOUNT_DATA | jq -r '.hosted_zone_id')" >> $GITHUB_ENV
         echo "DOMAIN_NAME=$(echo $AWS_ACCOUNT_DATA | jq -r '.domain_name')" >> $GITHUB_ENV
 
-        # echo "[default]" > $AWS_CONFIG_PATH
-        # echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
 
         echo "[default]" > $AWS_CREDENTIALS_PATH
         echo "region = ${AWS_REGION}" >> $AWS_CREDENTIALS_PATH
