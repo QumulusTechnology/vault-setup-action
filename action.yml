@@ -82,6 +82,7 @@ runs:
 
         mkdir ~/.aws
         AWS_CONFIG_PATH=~/.aws/config
+        AWS_CREDENTIALS_PATH=~/.aws/credentials
         AWS_ACCOUNT_DATA=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}")
         AWS_ACCOUNT_DATA_REGIONAL=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}.${REGION}")
 
@@ -98,11 +99,13 @@ runs:
         echo "AWS_DOMAIN_HOSTED_ZONE_ID=$(echo $AWS_ACCOUNT_DATA | jq -r '.hosted_zone_id')" >> $GITHUB_ENV
         echo "DOMAIN_NAME=$(echo $AWS_ACCOUNT_DATA | jq -r '.domain_name')" >> $GITHUB_ENV
 
+        # echo "[default]" > $AWS_CONFIG_PATH
+        # echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
 
-        echo "[default]" > $AWS_CONFIG_PATH
-        echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
-        echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${VAULT_OIDC_BRANCH} ${AWS_ACCOUNT_ID} vault/github/github-${REPOSITORY}-${VAULT_OIDC_BRANCH}" >>  $AWS_CONFIG_PATH
-        echo "" >> $AWS_CONFIG_PATH
+        echo "[default]" > $AWS_CREDENTIALS_PATH
+        echo "region = ${AWS_REGION}" >> $AWS_CREDENTIALS_PATH
+        echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${VAULT_OIDC_BRANCH} ${AWS_ACCOUNT_ID} vault/github/github-${REPOSITORY}-${VAULT_OIDC_BRANCH}" >>  $AWS_CREDENTIALS_PATH
+        echo "" >> $AWS_CREDENTIALS_PATH
 
         for platform in $(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r "to_entries | .[] | .key"); do
             for environment in $(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r ".${platform} | to_entries | .[] | .key"); do
@@ -115,11 +118,10 @@ runs:
                     branch="main"
                 fi
 
-                echo "[profile ${platform}_${environment}]" >> $AWS_CONFIG_PATH
-                echo "region = ${AWS_REGION}" >> $AWS_CONFIG_PATH
-                echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${branch} ${account_id} vault/github/github-${REPOSITORY}-${branch}" >>  $AWS_CONFIG_PATH
-                echo "" >> $AWS_CONFIG_PATH
+                echo "[profile ${platform}_${environment}]" >> $AWS_CREDENTIALS_PATH
+                echo "region = ${AWS_REGION}" >> $AWS_CREDENTIALS_PATH
+                echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${branch} ${account_id} vault/github/github-${REPOSITORY}-${branch}" >>  $AWS_CREDENTIALS_PATH
+                echo "" >> $AWS_CREDENTIALS_PATH
 
             done
         done
-       
