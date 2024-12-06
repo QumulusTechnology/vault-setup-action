@@ -29,21 +29,33 @@ runs:
       env:
         VAULT_ADDR: ${{ inputs.vault_addr }}
       run: |
-        if [ "$GITHUB_EVENT_NAME" == "delete" ]; then
+
+        if [ ${{ github.event_name }} == "delete" ]; then
           BRANCH=${{ github.event.ref }}
+          ENVIRONMENT=${{ github.event.ref }}
+          VAULT_OIDC_BRANCH=${{ github.event.ref }}
+        elif [ ${{ github.event_name }} == "schedule" ]; then
+          BRANCH=${{ github.ref_name }}
+          ENVIRONMENT=${{ github.ref_name }}
+          VAULT_OIDC_BRANCH=${{ github.ref_name }}
+        elif [ ${{ github.event_name }} == "pull_request_target" ]; then
+          BRANCH=${{ github.head_ref }}
+          ENVIRONMENT=${{ github.base_ref }}
+          VAULT_OIDC_BRANCH=${{ github.base_ref }}
+        elif [ ${{ github.event_name }} == "push" ]; then
+          BRANCH=${{ github.ref_name }}
+          ENVIRONMENT=${{ github.ref_name }}
+          VAULT_OIDC_BRANCH=${{ github.ref_name }}
         else
-          BRANCH=${{ github.base_ref || github.ref_name }}
+          echo "Unsupported event: ${{ github.event_name }}"
+          exit 1
         fi
 
-        if [ "$BRANCH" == "main" ]; then
-          VAULT_OIDC_BRANCH=$BRANCH
+        if [ "$ENVIRONMENT" == "main" ]; then
           ENVIRONMENT=prod
-        elif [ "$BRANCH" == "qa" ] || [ "$BRANCH" == "staging" ] || [ "$BRANCH" == "experimental" ]; then
-          VAULT_OIDC_BRANCH=$BRANCH
-          ENVIRONMENT=$BRANCH
-        else
-          VAULT_OIDC_BRANCH=dev
+        elif [ "$ENVIRONMENT" != "staging" ] || [ "$ENVIRONMENT" != "qa" ] || [ "$ENVIRONMENT" != "experimental" ]; then
           ENVIRONMENT=dev
+          VAULT_OIDC_BRANCH=dev
         fi
 
         REPOSITORY=$(echo ${GITHUB_REPOSITORY#*/})
