@@ -57,7 +57,7 @@ runs:
 
         if [ "$ENVIRONMENT" == "main" ]; then
           ENVIRONMENT=prod
-        elif [ "$ENVIRONMENT" != "staging" ] || [ "$ENVIRONMENT" != "qa" ] || [ "$ENVIRONMENT" != "experimental" ]; then
+        elif [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ]; then
           ENVIRONMENT=dev
           VAULT_OIDC_BRANCH=dev
         fi
