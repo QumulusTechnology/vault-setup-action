@@ -96,7 +96,7 @@ runs:
         REGION: ${{ inputs.region }}
       run: |
 
-        mkdir ~/.aws
+        mkdir -p ~/.aws
         AWS_CREDENTIALS_PATH=~/.aws/config
         AWS_ACCOUNT_DATA=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}")
         AWS_ACCOUNT_DATA_REGIONAL=$(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq ".${PLATFORM}.${ENVIRONMENT}.${REGION}")
