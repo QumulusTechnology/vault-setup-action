@@ -46,6 +46,10 @@ runs:
           BRANCH=${{ github.ref_name }}
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
+        elif [ ${{ github.event_name }} == "pull_request" ]; then
+          BRANCH=${{ github.ref_name }}
+          ENVIRONMENT=${{ github.ref_name }}
+          VAULT_OIDC_BRANCH=${{ github.ref_name }}
         elif [ ${{ github.event_name }} == "workflow_dispatch" ]; then
           BRANCH=${{ github.event.inputs.branch }}
           ENVIRONMENT=prod
