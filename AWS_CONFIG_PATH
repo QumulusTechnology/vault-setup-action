@@ -1,3 +1,0 @@
-[default]
-region = eu-west-2
-credential_process=vault-aws-credential-helper eu-west-2 github-testing-dev 124355669488 vault/github/github-testing-dev
