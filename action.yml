@@ -81,6 +81,11 @@ runs:
           ROLE="${ROLE}-create"
         fi
 
+        if [ "$GITHUB_EVENT_NAME" == "delete" ]; then
+          ROLE="${ROLE}-delete"
+        fi
+
+
         echo "ROLE=$ROLE" >> $GITHUB_ENV
         echo "VAULT_ADDR=$VAULT_ADDR" >> $GITHUB_ENV
         echo "BRANCH=$BRANCH" >> $GITHUB_ENV
