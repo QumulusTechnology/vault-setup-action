@@ -129,7 +129,7 @@ runs:
       with:
         exportToken: ${{ inputs.export_token }}
         method: jwt
-        url: ${{ inputs.VAULT_ADDR }}
+        url: ${{ inputs.vault_addr }}
         path: jwt/github
         role: ${{ env.ROLE }}
         secrets: ${{ inputs.secrets }}
@@ -140,6 +140,7 @@ runs:
         AWS_ACCOUNT_DATA_BASE64: ${{ inputs.aws_account_data }}
         PLATFORM: ${{ inputs.platform }}
         REGION: ${{ inputs.region }}
+        ENVIRONMENT: ${{ env.ENVIRONMENT }}
       run: |
 
         mkdir -p ~/.aws
