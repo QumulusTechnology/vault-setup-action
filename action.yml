@@ -164,7 +164,7 @@ runs:
 
         echo "[default]" > $AWS_CREDENTIALS_PATH
         echo "region = ${AWS_REGION}" >> $AWS_CREDENTIALS_PATH
-        echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${VAULT_OIDC_BRANCH} ${AWS_ACCOUNT_ID} vault/github/github-${REPOSITORY}-${VAULT_OIDC_BRANCH}" >>  $AWS_CREDENTIALS_PATH
+        echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-qcp-${REPOSITORY}-${VAULT_OIDC_BRANCH} ${AWS_ACCOUNT_ID} vault/github/github-qcp-${REPOSITORY}-${VAULT_OIDC_BRANCH}" >>  $AWS_CREDENTIALS_PATH
         echo "" >> $AWS_CREDENTIALS_PATH
 
         for platform in $(echo $AWS_ACCOUNT_DATA_BASE64 | base64 -d | jq -r "to_entries | .[] | .key"); do
@@ -180,7 +180,7 @@ runs:
 
                 echo "[profile ${platform}_${environment}]" >> $AWS_CREDENTIALS_PATH
                 echo "region = ${AWS_REGION}" >> $AWS_CREDENTIALS_PATH
-                echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-${REPOSITORY}-${branch} ${account_id} vault/github/github-${REPOSITORY}-${branch}" >>  $AWS_CREDENTIALS_PATH
+                echo "credential_process=vault-aws-credential-helper ${AWS_REGION} github-qcp-${REPOSITORY}-${branch} ${account_id} vault/github/github-qcp-${REPOSITORY}-${branch}" >>  $AWS_CREDENTIALS_PATH
                 echo "" >> $AWS_CREDENTIALS_PATH
 
             done
