@@ -30,31 +30,31 @@ runs:
         VAULT_ADDR: ${{ inputs.vault_addr }}
       run: |
 
-        if [ ${{ github.event_name }} == "delete" ]; then
+        if [ "${{ github.event_name }}" == "delete" ]; then
           BRANCH=${{ github.event.ref }}
           ENVIRONMENT=${{ github.event.ref }}
           VAULT_OIDC_BRANCH=${{ github.event.ref }}
-        elif [ ${{ github.event_name }} == "schedule" ]; then
+        elif [ "${{ github.event_name }}" == "schedule" ]; then
           BRANCH=${{ github.ref_name }}
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
-        elif [ ${{ github.event_name }} == "pull_request_target" ]; then
+        elif [ "${{ github.event_name }}" == "pull_request_target" ]; then
           BRANCH=${{ github.head_ref }}
           ENVIRONMENT=${{ github.base_ref }}
           VAULT_OIDC_BRANCH=${{ github.base_ref }}
-        elif [ ${{ github.event_name }} == "push" ]; then
+        elif [ "${{ github.event_name }}" == "push" ]; then
           BRANCH=${{ github.ref_name }}
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
-        elif [ ${{ github.event_name }} == "create" ]; then
+        elif [ "${{ github.event_name }}" == "create" ]; then
           BRANCH=${{ github.ref_name }}
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
-        elif [ ${{ github.event_name }} == "pull_request" ]; then
+        elif [ "${{ github.event_name }}" == "pull_request" ]; then
           BRANCH=${{ github.ref_name }}
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
-        elif [ ${{ github.event_name }} == "workflow_dispatch" ]; then
+        elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
           BRANCH=${{ github.event.inputs.branch }}
           ENVIRONMENT=prod
           VAULT_OIDC_BRANCH=main
