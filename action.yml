@@ -159,8 +159,8 @@ runs:
         cat << 'EOF' >> $AWS_CREDENTIALS_PATH
 
         [profile root]
-        credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
+        credential_process=bash -c 'vault write -format=json aws-root/${AWS_REGION}/sts/aws-sso-admin ttl=180m | jq "{Version: 1, AccessKeyId: .data.access_key, SecretAccessKey: .data.secret_key, SessionToken: .data.security_token}"'
 
         [profile qcp_root]
-        credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
-EOF
+        credential_process=bash -c 'vault write -format=json aws-root/${AWS_REGION}/sts/aws-sso-admin ttl=180m | jq "{Version: 1, AccessKeyId: .data.access_key, SecretAccessKey: .data.secret_key, SessionToken: .data.security_token}"'
+        EOF
