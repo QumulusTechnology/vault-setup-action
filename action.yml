@@ -158,9 +158,9 @@ runs:
 
         cat << 'EOF' >> $AWS_CREDENTIALS_PATH
 
-[profile root]
-credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
+        [profile root]
+        credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
 
-[profile qcp_root]
-credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
+        [profile qcp_root]
+        credential_process=vault-aws-credential-helper eu-west-2 group-global-administrators 448049828487 vault/group/group-global-administrators
 EOF
