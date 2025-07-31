@@ -29,6 +29,16 @@ runs:
       env:
         VAULT_ADDR: ${{ inputs.vault_addr }}
       run: |
+        echo "=== DEBUGGING VAULT SETUP ACTION ==="
+        echo "GitHub Event Name: ${{ github.event_name }}"
+        echo "GitHub Ref: ${{ github.ref }}"
+        echo "GitHub Ref Name: ${{ github.ref_name }}"
+        echo "GitHub Head Ref: ${{ github.head_ref }}"
+        echo "GitHub Base Ref: ${{ github.base_ref }}"
+        echo "GitHub Event Ref: ${{ github.event.ref }}"
+        echo "GitHub Repository: ${{ github.repository }}"
+        echo "GitHub Event Inputs Branch: ${{ github.event.inputs.branch }}"
+        echo "====================================="
 
         if [ "${{ github.event_name }}" == "delete" ]; then
           BRANCH=${{ github.event.ref }}
@@ -63,12 +73,22 @@ runs:
           exit 1
         fi
 
+        echo "=== AFTER INITIAL EVENT PROCESSING ==="
+        echo "BRANCH: $BRANCH"
+        echo "ENVIRONMENT: $ENVIRONMENT"  
+        echo "VAULT_OIDC_BRANCH: $VAULT_OIDC_BRANCH"
+        echo "======================================="
+
         if [ "$ENVIRONMENT" == "main" ]; then
           ENVIRONMENT=prod
-        elif [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ]; then
+        elif [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ] && [ "$ENVIRONMENT" != "prod" ]; then
           ENVIRONMENT=dev
-          VAULT_OIDC_BRANCH=dev
         fi
+
+        echo "=== AFTER ENVIRONMENT PROCESSING ==="
+        echo "FINAL ENVIRONMENT: $ENVIRONMENT"
+        echo "FINAL VAULT_OIDC_BRANCH: $VAULT_OIDC_BRANCH"
+        echo "====================================="
 
         REPOSITORY=$(echo ${GITHUB_REPOSITORY#*/})
         ROLE="github-qcp-${REPOSITORY}-${VAULT_OIDC_BRANCH}"
@@ -85,6 +105,11 @@ runs:
           ROLE="${ROLE}-delete"
         fi
 
+        echo "=== FINAL VARIABLES ==="
+        echo "REPOSITORY: $REPOSITORY"
+        echo "ROLE: $ROLE"
+        echo "VAULT_ADDR: $VAULT_ADDR"
+        echo "======================="
 
         echo "ROLE=$ROLE" >> $GITHUB_ENV
         echo "VAULT_ADDR=$VAULT_ADDR" >> $GITHUB_ENV
@@ -93,6 +118,10 @@ runs:
         echo "VAULT_ADDR=${VAULT_ADDR}" >> $GITHUB_ENV
         echo "ENVIRONMENT=${ENVIRONMENT}" >> $GITHUB_ENV
         echo "VAULT_OIDC_BRANCH=${VAULT_OIDC_BRANCH}" >> $GITHUB_ENV
+
+        echo "=== ENVIRONMENT VARIABLES SET ==="
+        echo "All variables have been exported to GITHUB_ENV"
+        echo "=================================="
 
     - name: Import Secrets
       id: import-secrets
