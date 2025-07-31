@@ -65,9 +65,9 @@ runs:
           ENVIRONMENT=${{ github.ref_name }}
           VAULT_OIDC_BRANCH=${{ github.ref_name }}
         elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-          BRANCH=${{ github.event.inputs.branch }}
-          ENVIRONMENT=prod
-          VAULT_OIDC_BRANCH=main
+          BRANCH=${{ github.ref_name }}
+          ENVIRONMENT=${{ github.ref_name }}
+          VAULT_OIDC_BRANCH=${{ github.ref_name }}
         else
           echo "Unsupported event: ${{ github.event_name }}"
           exit 1
