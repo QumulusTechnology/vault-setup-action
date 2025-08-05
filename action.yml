@@ -82,7 +82,7 @@ runs:
 
         if [ "$ENVIRONMENT" == "main" ]; then
           ENVIRONMENT=prod
-        elif [ "$ENVIRONMENT" != "staging" ] && [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ] && [ "$ENVIRONMENT" != "prod" ]; then
+        elif [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ] && [ "$ENVIRONMENT" != "prod" ]; then
           ENVIRONMENT=dev
         fi
 
