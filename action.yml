@@ -82,8 +82,10 @@ runs:
 
         if [ "$ENVIRONMENT" == "main" ]; then
           ENVIRONMENT=prod
+          VAULT_OIDC_BRANCH=main
         elif [ "$ENVIRONMENT" != "qa" ] && [ "$ENVIRONMENT" != "experimental" ] && [ "$ENVIRONMENT" != "prod" ]; then
           ENVIRONMENT=dev
+          VAULT_OIDC_BRANCH=dev
         fi
 
         echo "=== AFTER ENVIRONMENT PROCESSING ==="
